@@ -1,0 +1,121 @@
+data.Properties.VariableNames = {'Strain','Strain Rate','T1','T2','T3','T4','T5','T6',}
+stress = [95.9	51.1	32.8	20.4	14.6	10.4
+          117	74.4	43.8	32.6	22.8	15.4
+          179.3	100.5	62.3	45.6	34	25.6
+          255.4	113.3	85.1	64.3	47.7	37.7]
+
+
+T = [300 350 400 450 500 550]
+
+
+
+
+
+
+sr1 = [0.001
+       0.01
+       0.1
+        1];
+strainlog = log10(sr1);
+
+
+%slope or strain rate sensitivity
+m= zeros(4,6);
+for k = 1:6
+for p = 1:4
+c1= polyfit(log10(sr1),log10(stress(:,k)),3);
+
+deriv = polyder(c1);
+m(p,k) = polyval(deriv,strainlog(p));
+end
+end
+
+e= (2*m./(m+1))*100;
+T= 300:50:550;
+%instability zone 
+e1= e/200;
+slope= zeros(4,6);
+for k = 1:6
+for p = 1:4
+c2= polyfit(log10(sr1),log10(e1(:,k)),3);
+deriv = polyder(c2);
+slope(p,k) = polyval(deriv,strainlog(p));
+end
+end
+iz = slope +m; %instability zone matrix
+
+%%surface
+%% Fit: 'untitled fit 1'.
+[xData, yData, zData] = prepareSurfaceData( T, strainlog, e );
+% Set up fittype and options.
+ft = fittype( 'loess' );3
+opts = fitoptions( 'Method', 'LowessFit' );
+opts.Normalize = 'on';
+opts.Robust = 'Bisquare';
+opts.Span = 0.80;
+% Fit model to data.
+[fitresult, ~] = fit( [xData, yData], zData, ft, opts );
+% Make contour plot.
+figure( 'Name', 'untitled fit 1' );
+plot( fitresult, [xData, yData], zData, 'Style', 'Surface' );
+% Label axes
+xlabel( 'Temperature °C ', 'Interpreter', 'none' );
+ylabel( 'Strain Rate', 'Interpreter', 'none' );
+zlabel('Efficiency %')
+view([70 10]);
+set(get(gca,'xlabel'), 'Rotation',-30);
+title('Surface Plot : Efficiency vs Temp vs Strain Rate');
+
+%% Fit: 'untitled fit 1'.
+[xData, yData, zData] = prepareSurfaceData( T, strainlog, e );
+% Set up fittype and options.
+ft = fittype( 'loess' );
+opts = fitoptions( 'Method', 'LowessFit' );
+opts.Normalize = 'off';
+opts.Robust = 'bisquare';
+opts.Span = 0.59;
+% Fit model to data.
+[fitresult, ~] = fit( [xData, yData], zData, ft, opts );
+% Make contour plot.
+figure( 'Name', 'untitled fit 1' );
+h=plot( fitresult, [xData, yData], zData, 'Style', 'Contour' );
+% Label axes
+xlabel( 'Temperature °C', 'Interpreter', 'none' );
+ylabel( 'Log(Strain Rate)', 'Interpreter', 'none' );
+grid on
+set(h(1),'ShowText','on','LabelSpacing',100)
+set(h(1),'LineWidth',1.5,'Fill','off');
+set(h(1),'LevelList',[9,13,15,17,19,21,24,25,28,30,32,34,38,])
+saveas(gcf,'pd0_1.jpg')
+
+%% Fit: Instability map .
+[xData, yData, zData] = prepareSurfaceData( T, strainlog, iz );
+% Set up fittype and options.
+ft = fittype( 'loess' );
+opts = fitoptions( 'Method', 'LowessFit' );
+opts.Normalize = 'off';
+opts.Robust = 'on';
+opts.Span = 0.85;
+% Fit model to data.
+[fitresult, gof] = fit( [xData, yData], zData, ft, opts );
+% Make contour plot.
+figure( 'Name', 'untitled fit 1' );
+w=plot( fitresult, [xData, yData], zData, 'Style', 'Contour' );
+% Label axes
+xlabel( 'Temperature °C', 'Interpreter', 'none' );
+ylabel( 'Log(Strain Rate)', 'Interpreter', 'none' );
+grid on
+set(w(1),'LineWidth',1.5,'LevelStep',2);
+fig = gcf;
+saveas(gcf,'is0_1.jpg')
+
+%%https://in.mathworks.com/help/curvefit/fit-smooth-surfaces-to-investigate-fuel-efficiency.% BASIC IMAGE PROCESSING : SUPERIMPOSE
+fig1 = imread('pd0_1.jpg');
+fig2 = imread('is0_1.jpg');
+fusionimage=imfuse(fig1,fig2,'falsecolor','Scaling','joint');
+op=rgb2gray(fusionimage);
+op= imresize(op,[1968 2622]);
+imshow(op )
+title('Processing Map')
+
+Al 6061
